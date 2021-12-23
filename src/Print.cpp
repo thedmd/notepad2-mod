@@ -28,22 +28,20 @@
 #include <string.h>
 #include "scintilla.h"
 #include "scilexer.h"
-extern "C" {
 #include "dialogs.h"
 #include "helpers.h"
-}
 #include "resource.h"
 
 
-extern "C" HINSTANCE g_hInstance;
+extern HINSTANCE g_hInstance;
 
 
 // Global settings...
-extern "C" int iPrintHeader;
-extern "C" int iPrintFooter;
-extern "C" int iPrintColor;
-extern "C" int iPrintZoom;
-extern "C" RECT pagesetupMargin;
+extern int iPrintHeader;
+extern int iPrintFooter;
+extern int iPrintColor;
+extern int iPrintZoom;
+extern RECT pagesetupMargin;
 
 
 // Stored objects...
@@ -55,7 +53,7 @@ HGLOBAL hDevNames = NULL;
 //
 //  EditPrint() - Code from SciTE
 //
-extern "C" HWND hwndStatus;
+extern HWND hwndStatus;
 
 void StatusUpdatePrintPage(int iPageNum)
 {
@@ -71,7 +69,7 @@ void StatusUpdatePrintPage(int iPageNum)
 }
 
 
-extern "C" BOOL EditPrint(HWND hwnd,LPCWSTR pszDocTitle,LPCWSTR pszPageFormat)
+BOOL EditPrint(HWND hwnd,LPCWSTR pszDocTitle,LPCWSTR pszPageFormat)
 {
 
   // Don't print empty documents
@@ -455,7 +453,7 @@ extern "C" BOOL EditPrint(HWND hwnd,LPCWSTR pszDocTitle,LPCWSTR pszPageFormat)
 //                   33 Footer
 //                   34 Colors
 //
-extern "C" UINT_PTR CALLBACK PageSetupHook(HWND hwnd, UINT uiMsg, WPARAM wParam, LPARAM lParam)
+UINT_PTR CALLBACK PageSetupHook(HWND hwnd, UINT uiMsg, WPARAM wParam, LPARAM lParam)
 {
   switch (uiMsg)
   {
@@ -533,7 +531,7 @@ extern "C" UINT_PTR CALLBACK PageSetupHook(HWND hwnd, UINT uiMsg, WPARAM wParam,
 }
 
 
-extern "C" void EditPrintSetup(HWND hwnd)
+void EditPrintSetup(HWND hwnd)
 {
   DLGTEMPLATE* pDlgTemplate =
     LoadThemedDialogTemplate(MAKEINTRESOURCE(IDD_PAGESETUP),g_hInstance);
@@ -579,7 +577,7 @@ extern "C" void EditPrintSetup(HWND hwnd)
 //
 //  EditPrintInit() - Setup default page margin if no values from registry
 //
-extern "C" void EditPrintInit()
+void EditPrintInit()
 {
   if (pagesetupMargin.left == -1 || pagesetupMargin.top == -1 ||
       pagesetupMargin.right == -1 || pagesetupMargin.bottom == -1)

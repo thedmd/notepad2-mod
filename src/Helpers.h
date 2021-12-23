@@ -108,7 +108,8 @@ BOOL StatusSetTextID(HWND,UINT,UINT);
 int  StatusCalcPaneWidth(HWND,LPCWSTR);
 
 int Toolbar_GetButtons(HWND,int,LPWSTR,int);
-int Toolbar_SetButtons(HWND,int,LPCWSTR,void*,int);
+//int Toolbar_SetButtons(HWND,int,LPCWSTR,void*,int);
+int Toolbar_SetButtons(HWND hwnd,int cmdBase,LPCWSTR lpszButtons,LPCTBBUTTON ptbb,int ctbb);
 
 LRESULT SendWMSize(HWND);
 

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -203,13 +203,13 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Dialogs.c" />
-    <ClCompile Include="Dlapi.c" />
-    <ClCompile Include="Edit.c" />
-    <ClCompile Include="Helpers.c" />
-    <ClCompile Include="Notepad2.c" />
+    <ClCompile Include="Dialogs.cpp" />
+    <ClCompile Include="Dlapi.cpp" />
+    <ClCompile Include="Edit.cpp" />
+    <ClCompile Include="Helpers.cpp" />
+    <ClCompile Include="Notepad2.cpp" />
     <ClCompile Include="Print.cpp" />
-    <ClCompile Include="Styles.c" />
+    <ClCompile Include="Styles.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dialogs.h" />
