@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include "scintilla.h"
 #include "scilexer.h"
+#include "lexilla.h"
 #include "notepad2.h"
 #include "edit.h"
 #include "styles.h"
@@ -314,7 +315,7 @@ EDITLEXER lexCSS = { SCLEX_CSS, 63003, L"CSS Style Sheets", L"css", L"", &KeyWor
                      { SCE_CSS_OPERATOR, 63132, L"Operator", L"fore:#B000B0", L"" },
                      { SCE_CSS_IMPORTANT, 63202, L"Important", L"bold; fore:#C80000", L"" },
                      { SCE_CSS_DIRECTIVE, 63203, L"Directive", L"bold; fore:#000000; back:#FFF1A8", L"" },
-                     { SCE_CSS_MEDIA, 63382, L"Media", L"bold; fore:#0A246A", L"" },
+                     { SCE_CSS_GROUP_RULE, 63382, L"Media", L"bold; fore:#0A246A", L"" },
                      { SCE_CSS_VARIABLE, 63249, L"Variable", L"bold; fore:#FF4000", L"" },
                      { SCE_CSS_UNKNOWN_PSEUDOCLASS, 63198, L"Unknown Pseudo-class", L"fore:#C80000; back:#FFFF80", L"" },
                      { SCE_CSS_UNKNOWN_IDENTIFIER, 63200, L"Unknown Property", L"fore:#C80000; back:#FFFF80", L"" },
@@ -2252,31 +2253,6 @@ KEYWORDLIST KeyWords_AHK = {
 "", "" };
 
 
-EDITLEXER lexAHK = { SCLEX_AHK, 63305, L"AutoHotkey Script", L"ahk; ia; scriptlet", L"", &KeyWords_AHK, {
-                     { STYLE_DEFAULT, 63126, L"Default", L"", L"" },
-                     //{ SCE_AHK_DEFAULT, L"Default", L"", L"" },
-                     { MULTI_STYLE(SCE_AHK_COMMENTLINE,SCE_AHK_COMMENTBLOCK,0,0), 63127, L"Comment", L"fore:#008000", L"" },
-                     { SCE_AHK_ESCAPE, 63306, L"Escape", L"fore:#FF8000", L"" },
-                     { SCE_AHK_SYNOPERATOR, 63307, L"Syntax Operator", L"fore:#7F200F", L"" },
-                     { SCE_AHK_EXPOPERATOR, 63308, L"Expression operator", L"fore:#FF4F00", L"" },
-                     { SCE_AHK_STRING, 63131, L"String", L"fore:#404040", L"" },
-                     { SCE_AHK_NUMBER, 63130, L"Number", L"fore:#2F4F7F", L"" },
-                     { SCE_AHK_IDENTIFIER, 63129, L"Identifier", L"fore:#CF2F0F", L"" },
-                     { SCE_AHK_VARREF, 63309, L"Variable dereferencing", L"fore:#CF2F0F; back:#E4FFE4", L"" },
-                     { SCE_AHK_LABEL, 63235, L"Label", L"fore:#000000; back:#FFFFA1", L"" },
-                     { SCE_AHK_WORD_CF, 63310, L"Flow of control", L"fore:#480048; bold", L"" },
-                     { SCE_AHK_WORD_CMD, 63236, L"Command", L"fore:#004080", L"" },
-                     { SCE_AHK_WORD_FN, 63277, L"Function", L"fore:#0F707F; italics", L"" },
-                     { SCE_AHK_WORD_DIR, 63203, L"Directive", L"fore:#F04020; italics", L"" },
-                     { SCE_AHK_WORD_KB, 63311, L"Keys & buttons", L"fore:#FF00FF; bold", L"" },
-                     { SCE_AHK_WORD_VAR, 63312, L"Built-in Variables", L"fore:#CF00CF; italics", L"" },
-                     { SCE_AHK_WORD_SP, 63280, L"Special", L"fore:#0000FF; italics", L"" },
-                     //{ SCE_AHK_WORD_UD, 63106, L"User Defined", L"fore:#800020", L"" },
-                     { SCE_AHK_VARREFKW, 63313, L"Variable keyword", L"fore:#CF00CF; italics; back:#F9F9FF", L"" },
-                     { SCE_AHK_ERROR, 63260, L"Error", L"back:#FFC0C0", L"" },
-                     { -1, 00000, L"", L"", L"" } } };
-
-
 KEYWORDLIST KeyWords_CMAKE = {
 "add_custom_command add_custom_target add_definitions add_dependencies add_executable add_library "
 "add_subdirectory add_test aux_source_directory build_command build_name cmake_minimum_required "
@@ -2525,7 +2501,6 @@ PEDITLEXER pLexArray[NUMLEXERS] =
   &lexAVS,
   &lexCONF, //Apache Config Scripts
   &lexASM,
-  &lexAHK,
   &lexAU3,
   &lexBAT,
   &lexCOFFEESCRIPT,
@@ -2830,7 +2805,6 @@ void Style_SetLexer(HWND hwnd,PEDITLEXER pLexNew)
   int rgb;
   int iValue;
   int iIdx;
-  int iStyleBits;
   WCHAR wchCaretStyle[64] = L"";
 
   // Select default if NULL is specified
@@ -2838,10 +2812,9 @@ void Style_SetLexer(HWND hwnd,PEDITLEXER pLexNew)
     pLexNew = pLexArray[iDefaultLexer];
 
   // Lexer
-  SendMessage(hwnd,SCI_SETLEXER,pLexNew->iLexer,0);
-
-  iStyleBits = (int)SendMessage(hwnd,SCI_GETSTYLEBITSNEEDED,0,0);
-  SendMessage(hwnd,SCI_SETSTYLEBITS,(WPARAM)iStyleBits,0);
+  const char* chLexerName = LexerNameFromID(pLexNew->iLexer);
+  ILexer5* pLexer = CreateLexer(chLexerName);
+  SendMessage(hwnd,SCI_SETILEXER,(WPARAM)pLexer,0);
 
   if (pLexNew->iLexer == SCLEX_XML)
     SendMessage(hwnd,SCI_SETPROPERTY,(WPARAM)"lexer.xml.allow.scripts",(LPARAM)"1");

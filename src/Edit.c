@@ -4675,7 +4675,7 @@ void EditSortLines(HWND hwnd,int iSortFlags)
 //
 //  EditJumpTo()
 //
-void EditJumpTo(HWND hwnd,int iNewLine,int iNewCol)
+void EditJumpTo(HWND hwnd,Line iNewLine,int iNewCol)
 {
   int iMaxLine = (int)SendMessage(hwnd,SCI_GETLINECOUNT,0,0);
 

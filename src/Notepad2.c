@@ -270,7 +270,8 @@ BOOL      fIsElevated = FALSE;
 WCHAR     wchWndClass[16] = WC_NOTEPAD2;
 
 HINSTANCE g_hInstance;
-HANDLE    g_hScintilla;
+sptr_t      g_hScintilla;
+SciFnDirect g_hScintilla_DirectFunction = NULL;
 UINT16    g_uWinVer;
 WCHAR     g_wchAppUserModelID[32] = L"";
 WCHAR     g_wchWorkingDirectory[MAX_PATH] = L"";
@@ -390,7 +391,7 @@ typedef enum {
 #define FOLD_CHILDREN SCMOD_CTRL
 #define FOLD_SIBLINGS SCMOD_SHIFT
 
-BOOL __stdcall FoldToggleNode( int ln, FOLD_ACTION action )
+BOOL __stdcall FoldToggleNode( Line ln, FOLD_ACTION action )
 {
   BOOL fExpanded = SciCall_GetFoldExpanded(ln);
 
@@ -406,8 +407,8 @@ BOOL __stdcall FoldToggleNode( int ln, FOLD_ACTION action )
 void __stdcall FoldToggleAll( FOLD_ACTION action )
 {
   BOOL fToggled = FALSE;
-  int lnTotal = SciCall_GetLineCount();
-  int ln;
+  Line lnTotal = SciCall_GetLineCount();
+  Line ln;
 
   for (ln = 0; ln < lnTotal; ++ln)
   {
@@ -431,7 +432,7 @@ void __stdcall FoldToggleAll( FOLD_ACTION action )
   }
 }
 
-void __stdcall FoldPerformAction( int ln, int mode, FOLD_ACTION action )
+void __stdcall FoldPerformAction( Line ln, int mode, FOLD_ACTION action )
 {
   if (action == SNIFF)
     action = SciCall_GetFoldExpanded(ln) ? FOLD : EXPAND;
@@ -439,9 +440,9 @@ void __stdcall FoldPerformAction( int ln, int mode, FOLD_ACTION action )
   if (mode & (FOLD_CHILDREN | FOLD_SIBLINGS))
   {
     // ln/lvNode: line and level of the source of this fold action
-    int lnNode = ln;
-    int lvNode = SciCall_GetFoldLevel(lnNode) & SC_FOLDLEVELNUMBERMASK;
-    int lnTotal = SciCall_GetLineCount();
+    Line lnNode = ln;
+    int  lvNode = SciCall_GetFoldLevel(lnNode) & SC_FOLDLEVELNUMBERMASK;
+    Line lnTotal = SciCall_GetLineCount();
 
     // lvStop: the level over which we should not cross
     int lvStop = lvNode;
@@ -470,10 +471,10 @@ void __stdcall FoldPerformAction( int ln, int mode, FOLD_ACTION action )
   }
 }
 
-void __stdcall FoldClick( int ln, int mode )
+void __stdcall FoldClick( Sci_Position ln, int mode )
 {
   static struct {
-    int ln;
+    Sci_Position ln;
     int mode;
     DWORD dwTickCount;
   } prev;
@@ -519,12 +520,12 @@ void __stdcall FoldAltArrow( int key, int mode )
 
   if (bShowCodeFolding && (mode & (SCMOD_ALT | SCMOD_SHIFT)) == SCMOD_ALT)
   {
-    int ln = SciCall_LineFromPosition(SciCall_GetCurrentPos());
+    Line ln = SciCall_LineFromPosition(SciCall_GetCurrentPos());
 
     // Jump to the next visible fold point
     if (key == SCK_DOWN && !(mode & SCMOD_CTRL))
     {
-      int lnTotal = SciCall_GetLineCount();
+      Line lnTotal = SciCall_GetLineCount();
       for (ln = ln + 1; ln < lnTotal; ++ln)
       {
         if ( SciCall_GetFoldLevel(ln) & SC_FOLDLEVELHEADERFLAG &&
@@ -2178,7 +2179,7 @@ void MsgInitMenu(HWND hwnd,WPARAM wParam,LPARAM lParam)
     !(i == SCLEX_NULL || i == SCLEX_VBSCRIPT || i == SCLEX_MAKEFILE || i == SCLEX_VB || i == SCLEX_ASM ||
       i == SCLEX_SQL || i == SCLEX_PERL || i == SCLEX_PYTHON || i == SCLEX_PROPERTIES ||i == SCLEX_CONF ||
       i == SCLEX_POWERSHELL || i == SCLEX_BATCH || i == SCLEX_DIFF || i == SCLEX_BASH || i == SCLEX_TCL ||
-      i == SCLEX_AU3 || i == SCLEX_LATEX || i == SCLEX_AHK || i == SCLEX_RUBY || i == SCLEX_CMAKE || i == SCLEX_MARKDOWN ||
+      i == SCLEX_AU3 || i == SCLEX_LATEX || i == SCLEX_RUBY || i == SCLEX_CMAKE || i == SCLEX_MARKDOWN ||
       i == SCLEX_YAML));
 
   EnableCmd(hmenu,IDM_EDIT_INSERT_ENCODING,*mEncoding[iEncoding].pszParseNames);
@@ -3427,7 +3428,6 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
         case SCLEX_ASM:
         case SCLEX_PROPERTIES:
         case SCLEX_AU3:
-        case SCLEX_AHK:
         case SCLEX_NSIS: // # could also be used instead
         case SCLEX_INNOSETUP:
           BeginWaitCursor();
@@ -3474,7 +3474,6 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
         case SCLEX_TCL:
         case SCLEX_AU3:
         case SCLEX_LATEX:
-        case SCLEX_AHK:
         case SCLEX_RUBY:
         case SCLEX_CMAKE:
         case SCLEX_MARKDOWN:

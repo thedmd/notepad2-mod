@@ -22,31 +22,32 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{BAAD32AB-CD47-12FD-873C-0BBC204B7641}</ProjectGuid>
     <ProjectName>Notepad2</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
@@ -68,31 +69,31 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <GenerateManifest>false</GenerateManifest>
-    <IntDir>..\bin\VS2017\$(Configuration)_x86\obj\</IntDir>
+    <IntDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x86\obj\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\bin\VS2017\$(Configuration)_x86\</OutDir>
+    <OutDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x86\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <GenerateManifest>false</GenerateManifest>
-    <IntDir>..\bin\VS2017\$(Configuration)_x86\obj\</IntDir>
+    <IntDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x86\obj\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\bin\VS2017\$(Configuration)_x86\</OutDir>
+    <OutDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x86\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <GenerateManifest>false</GenerateManifest>
-    <IntDir>..\bin\VS2017\$(Configuration)_x64\obj\</IntDir>
+    <IntDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x64\obj\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\bin\VS2017\$(Configuration)_x64\</OutDir>
+    <OutDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x64\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <GenerateManifest>false</GenerateManifest>
-    <IntDir>..\bin\VS2017\$(Configuration)_x64\obj\</IntDir>
+    <IntDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x64\obj\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\bin\VS2017\$(Configuration)_x64\</OutDir>
+    <OutDir>$(SolutionDir)..\bin\VS2022\$(Configuration)_x64\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\scintilla\include;..\scintilla\lexlib;..\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\external\scintilla\include;..\external\lexilla\include;..\external\lexilla\lexlib;..\external\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <MinimalRebuild>false</MinimalRebuild>
@@ -101,6 +102,7 @@
       <PreprocessorDefinitions>WIN32;STATIC_BUILD;SCI_LEXER;BOOKMARK_EDITION;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;imm32.lib;shlwapi.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -118,7 +120,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\scintilla\include;..\scintilla\lexlib;..\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\external\scintilla\include;..\external\lexilla\include;..\external\lexilla\lexlib;..\external\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MinimalRebuild>false</MinimalRebuild>
@@ -127,6 +129,7 @@
       <PreprocessorDefinitions>_WIN64;STATIC_BUILD;SCI_LEXER;BOOKMARK_EDITION;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;imm32.lib;shlwapi.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -144,13 +147,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\scintilla\include;..\scintilla\lexlib;..\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\external\scintilla\include;..\external\lexilla\include;..\external\lexilla\lexlib;..\external\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>WIN32;STATIC_BUILD;SCI_LEXER;BOOKMARK_EDITION;NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;imm32.lib;shlwapi.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -172,12 +176,13 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\scintilla\include;..\scintilla\lexlib;..\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\external\scintilla\include;..\external\lexilla\include;..\external\lexilla\lexlib;..\external\scintilla\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>_WIN64;STATIC_BUILD;SCI_LEXER;BOOKMARK_EDITION;NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;imm32.lib;shlwapi.lib;msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -234,7 +239,10 @@
     <ResourceCompile Include="Notepad2.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\scintilla\Scintilla.vcxproj">
+    <ProjectReference Include="..\external\lexilla\Lexilla.vcxproj">
+      <Project>{1155437a-6730-46ee-a2de-090dafa9bbd1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\external\scintilla\Scintilla.vcxproj">
       <Project>{5877b917-512b-49f5-b514-1b4159e7a9ca}</Project>
     </ProjectReference>
   </ItemGroup>

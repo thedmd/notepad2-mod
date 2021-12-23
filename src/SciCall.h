@@ -12,6 +12,8 @@
 *
 *
 ******************************************************************************/
+typedef intptr_t Position;
+typedef intptr_t Line;
 
 
 //=============================================================================
@@ -19,10 +21,12 @@
 //  g_hScintilla
 //
 //
-extern HANDLE g_hScintilla;
+extern sptr_t g_hScintilla;
+extern SciFnDirect g_hScintilla_DirectFunction;
 
 __forceinline void InitScintillaHandle(HWND hwnd) {
-  g_hScintilla = (HANDLE)SendMessage(hwnd, SCI_GETDIRECTPOINTER, 0, 0);
+  g_hScintilla = (sptr_t)SendMessage(hwnd, SCI_GETDIRECTPOINTER, 0, 0);
+  g_hScintilla_DirectFunction = (SciFnDirect)SendMessage(hwnd, SCI_GETDIRECTFUNCTION, 0, 0);
 }
 
 
@@ -32,7 +36,7 @@ __forceinline void InitScintillaHandle(HWND hwnd) {
 //
 //
 LRESULT WINAPI Scintilla_DirectFunction(HANDLE, UINT, WPARAM, LPARAM);
-#define SciCall(m, w, l) Scintilla_DirectFunction(g_hScintilla, m, w, l)
+#define SciCall(m, w, l) g_hScintilla_DirectFunction(g_hScintilla, m, w, l)
 
 
 //=============================================================================
@@ -75,12 +79,13 @@ __forceinline LRESULT SciCall_##fn(type1 var1, type2 var2) {       \
 //  Selection and information
 //
 //
-DeclareSciCallR0(GetLineCount, GETLINECOUNT, int);
-DeclareSciCallV2(SetSel, SETSEL, int, anchorPos, int, currentPos);
-DeclareSciCallV1(GotoPos, GOTOPOS, int, position);
-DeclareSciCallV1(GotoLine, GOTOLINE, int, line);
-DeclareSciCallR0(GetCurrentPos, GETCURRENTPOS, int);
-DeclareSciCallR1(LineFromPosition, LINEFROMPOSITION, int, int, position);
+
+DeclareSciCallR0(GetLineCount, GETLINECOUNT, Line);
+DeclareSciCallV2(SetSel, SETSEL, Position, anchorPos, Position, currentPos);
+DeclareSciCallV1(GotoPos, GOTOPOS, Position, position);
+DeclareSciCallV1(GotoLine, GOTOLINE, Line, line);
+DeclareSciCallR0(GetCurrentPos, GETCURRENTPOS, Position);
+DeclareSciCallR1(LineFromPosition, LINEFROMPOSITION, Line, Position, position);
 
 
 //=============================================================================
@@ -130,13 +135,13 @@ DeclareSciCallV2(MarkerSetBack, MARKERSETBACK, int, markerNumber, COLORREF, colo
 //  Folding
 //
 //
-DeclareSciCallR1(GetLineVisible, GETLINEVISIBLE, BOOL, int, line);
-DeclareSciCallR1(GetFoldLevel, GETFOLDLEVEL, int, int, line);
+DeclareSciCallR1(GetLineVisible, GETLINEVISIBLE, BOOL, Line, line);
+DeclareSciCallR1(GetFoldLevel, GETFOLDLEVEL, int, Line, line);
 DeclareSciCallV1(SetFoldFlags, SETFOLDFLAGS, int, flags);
-DeclareSciCallR1(GetFoldParent, GETFOLDPARENT, int, int, line);
-DeclareSciCallR1(GetFoldExpanded, GETFOLDEXPANDED, int, int, line);
-DeclareSciCallV1(ToggleFold, TOGGLEFOLD, int, line);
-DeclareSciCallV1(EnsureVisible, ENSUREVISIBLE, int, line);
+DeclareSciCallR1(GetFoldParent, GETFOLDPARENT, int, Line, line);
+DeclareSciCallR1(GetFoldExpanded, GETFOLDEXPANDED, int, Line, line);
+DeclareSciCallV1(ToggleFold, TOGGLEFOLD, Line, line);
+DeclareSciCallV1(EnsureVisible, ENSUREVISIBLE, Line, line);
 
 
 //=============================================================================

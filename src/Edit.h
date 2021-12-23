@@ -18,6 +18,8 @@
 *
 ******************************************************************************/
 
+typedef intptr_t Position;
+typedef intptr_t Line;
 
 
 // extern "C" declarations of Scintilla functions
@@ -110,7 +112,7 @@ void  EditWrapToColumn(HWND,int);
 void  EditJoinLinesEx(HWND);
 void  EditSortLines(HWND,int);
 
-void  EditJumpTo(HWND,int,int);
+void  EditJumpTo(HWND,Line,int);
 void  EditSelectEx(HWND,int,int);
 void  EditFixPositions(HWND);
 void  EditEnsureSelectionVisible(HWND);
