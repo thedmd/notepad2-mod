@@ -4722,9 +4722,9 @@ void EditSelectEx(HWND hwnd,int iAnchorPos,int iCurrentPos)
 
   // Ensure that the first and last lines of a selection are always unfolded
   // This needs to be done *before* the SCI_SETSEL message
-  SciCall_EnsureVisible(iAnchorLine);
+  g_Scintilla.EnsureVisible(iAnchorLine);
   if (iAnchorLine != iNewLine)
-    SciCall_EnsureVisible(iNewLine);
+    g_Scintilla.EnsureVisible(iNewLine);
 
   SendMessage(hwnd,SCI_SETXCARETPOLICY,CARET_SLOP|CARET_STRICT|CARET_EVEN,50);
   SendMessage(hwnd,SCI_SETYCARETPOLICY,CARET_SLOP|CARET_STRICT|CARET_EVEN,5);

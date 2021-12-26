@@ -269,6 +269,8 @@ int   iAlignMode   = 0;
 BOOL      fIsElevated = FALSE;
 WCHAR     wchWndClass[16] = WC_NOTEPAD2;
 
+Scintilla::ScintillaCall g_Scintilla;
+
 HINSTANCE g_hInstance;
 sptr_t      g_hScintilla;
 SciFnDirect g_hScintilla_DirectFunction = NULL;
@@ -393,11 +395,11 @@ typedef enum {
 
 BOOL __stdcall FoldToggleNode( Line ln, FOLD_ACTION action )
 {
-  BOOL fExpanded = SciCall_GetFoldExpanded(ln);
+  BOOL fExpanded = g_Scintilla.FoldExpanded(ln);
 
   if ((action == FOLD && fExpanded) || (action == EXPAND && !fExpanded))
   {
-    SciCall_ToggleFold(ln);
+    g_Scintilla.ToggleFold(ln);
     return(TRUE);
   }
 
@@ -407,15 +409,15 @@ BOOL __stdcall FoldToggleNode( Line ln, FOLD_ACTION action )
 void __stdcall FoldToggleAll( FOLD_ACTION action )
 {
   BOOL fToggled = FALSE;
-  Line lnTotal = SciCall_GetLineCount();
+  auto lnTotal = g_Scintilla.LineCount();
   Line ln;
 
   for (ln = 0; ln < lnTotal; ++ln)
   {
-    if (SciCall_GetFoldLevel(ln) & SC_FOLDLEVELHEADERFLAG)
+    if (Scintilla::LevelIsHeader(g_Scintilla.FoldLevel(ln)))
     {
       if (action == SNIFF)
-        action = SciCall_GetFoldExpanded(ln) ? FOLD : EXPAND;
+        action = g_Scintilla.FoldExpanded(ln) ? FOLD : EXPAND;
 
       if (FoldToggleNode(ln, action))
         fToggled = TRUE;
@@ -424,44 +426,44 @@ void __stdcall FoldToggleAll( FOLD_ACTION action )
 
   if (fToggled)
   {
-    SciCall_SetXCaretPolicy(CARET_SLOP|CARET_STRICT|CARET_EVEN,50);
-    SciCall_SetYCaretPolicy(CARET_SLOP|CARET_STRICT|CARET_EVEN,5);
-    SciCall_ScrollCaret();
-    SciCall_SetXCaretPolicy(CARET_SLOP|CARET_EVEN,50);
-    SciCall_SetYCaretPolicy(CARET_EVEN,0);
+    g_Scintilla.SetXCaretPolicy(Scintilla::CaretPolicy::Slop | Scintilla::CaretPolicy::Strict | Scintilla::CaretPolicy::Even, 50);
+    g_Scintilla.SetYCaretPolicy(Scintilla::CaretPolicy::Slop | Scintilla::CaretPolicy::Strict | Scintilla::CaretPolicy::Even, 5);
+    g_Scintilla.ScrollCaret();
+    g_Scintilla.SetXCaretPolicy(Scintilla::CaretPolicy::Slop | Scintilla::CaretPolicy::Even, 50);
+    g_Scintilla.SetYCaretPolicy(Scintilla::CaretPolicy::Even, 0);
   }
 }
 
 void __stdcall FoldPerformAction( Line ln, int mode, FOLD_ACTION action )
 {
   if (action == SNIFF)
-    action = SciCall_GetFoldExpanded(ln) ? FOLD : EXPAND;
+    action = g_Scintilla.FoldExpanded(ln) ? FOLD : EXPAND;
 
   if (mode & (FOLD_CHILDREN | FOLD_SIBLINGS))
   {
     // ln/lvNode: line and level of the source of this fold action
     Line lnNode = ln;
-    int  lvNode = SciCall_GetFoldLevel(lnNode) & SC_FOLDLEVELNUMBERMASK;
-    Line lnTotal = SciCall_GetLineCount();
+    int  lvNode = Scintilla::LevelNumber(g_Scintilla.FoldLevel(lnNode));
+    auto lnTotal = g_Scintilla.LineCount();
 
     // lvStop: the level over which we should not cross
     int lvStop = lvNode;
 
     if (mode & FOLD_SIBLINGS)
     {
-      ln = SciCall_GetFoldParent(lnNode) + 1;  // -1 + 1 = 0 if no parent
+      ln = g_Scintilla.FoldParent(lnNode) + 1;  // -1 + 1 = 0 if no parent
       --lvStop;
     }
 
     for ( ; ln < lnTotal; ++ln)
     {
-      int lv = SciCall_GetFoldLevel(ln);
-      BOOL fHeader = lv & SC_FOLDLEVELHEADERFLAG;
-      lv &= SC_FOLDLEVELNUMBERMASK;
+      auto lv = g_Scintilla.FoldLevel(ln);
+      auto fHeader = Scintilla::LevelIsHeader(lv);
+      auto level = Scintilla::LevelNumber(lv);
 
-      if (lv < lvStop || (lv == lvStop && fHeader && ln != lnNode))
+      if (level < lvStop || (level == lvStop && fHeader && level != lnNode))
         return;
-      else if (fHeader && (lv == lvNode || (lv > lvNode && mode & FOLD_CHILDREN)))
+      else if (fHeader && (level == lvNode || (level > lvNode && mode & FOLD_CHILDREN)))
         FoldToggleNode(ln, action);
     }
   }
@@ -481,7 +483,7 @@ void __stdcall FoldClick( Sci_Position ln, int mode )
 
   BOOL fGotoFoldPoint = mode & FOLD_SIBLINGS;
 
-  if (!(SciCall_GetFoldLevel(ln) & SC_FOLDLEVELHEADERFLAG))
+  if (!Scintilla::LevelIsHeader(g_Scintilla.FoldLevel(ln)))
   {
     // Not a fold point: need to look for a double-click
 
@@ -490,9 +492,9 @@ void __stdcall FoldClick( Sci_Position ln, int mode )
     {
       prev.ln = -1;  // Prevent re-triggering on a triple-click
 
-      ln = SciCall_GetFoldParent(ln);
+      ln = g_Scintilla.FoldParent(ln);
 
-      if (ln >= 0 && SciCall_GetFoldExpanded(ln))
+      if (ln >= 0 && g_Scintilla.FoldExpanded(ln))
         fGotoFoldPoint = TRUE;
       else
         return;
@@ -520,16 +522,16 @@ void __stdcall FoldAltArrow( int key, int mode )
 
   if (bShowCodeFolding && (mode & (SCMOD_ALT | SCMOD_SHIFT)) == SCMOD_ALT)
   {
-    Line ln = SciCall_LineFromPosition(SciCall_GetCurrentPos());
+    Line ln = g_Scintilla.LineFromPosition(g_Scintilla.CurrentPos());
 
     // Jump to the next visible fold point
     if (key == SCK_DOWN && !(mode & SCMOD_CTRL))
     {
-      Line lnTotal = SciCall_GetLineCount();
+      auto lnTotal = g_Scintilla.LineCount();
       for (ln = ln + 1; ln < lnTotal; ++ln)
       {
-        if ( SciCall_GetFoldLevel(ln) & SC_FOLDLEVELHEADERFLAG &&
-             SciCall_GetLineVisible(ln) )
+        if ( Scintilla::LevelIsHeader(g_Scintilla.FoldLevel(ln)) &&
+             g_Scintilla.LineVisible(ln) )
         {
           EditJumpTo(hwndEdit, ln + 1, 0);
           return;
@@ -542,8 +544,8 @@ void __stdcall FoldAltArrow( int key, int mode )
     {
       for (ln = ln - 1; ln >= 0; --ln)
       {
-        if ( SciCall_GetFoldLevel(ln) & SC_FOLDLEVELHEADERFLAG &&
-             SciCall_GetLineVisible(ln) )
+        if ( Scintilla::LevelIsHeader(g_Scintilla.FoldLevel(ln)) &&
+             g_Scintilla.LineVisible(ln) )
         {
           EditJumpTo(hwndEdit, ln + 1, 0);
           return;
@@ -552,7 +554,7 @@ void __stdcall FoldAltArrow( int key, int mode )
     }
 
     // Perform a fold/unfold operation
-    else if (SciCall_GetFoldLevel(ln) & SC_FOLDLEVELHEADERFLAG)
+    else if (Scintilla::LevelIsHeader(g_Scintilla.FoldLevel(ln)))
     {
       if (key == SCK_LEFT ) FoldPerformAction(ln, mode, FOLD);
       if (key == SCK_RIGHT) FoldPerformAction(ln, mode, EXPAND);
@@ -904,7 +906,7 @@ HWND InitInstance(HINSTANCE hInstance,LPSTR pszCmdLine,int nCmdShow)
     if (iSrcEncoding != -1) {
       iEncoding = iSrcEncoding;
       iOriginalEncoding = iSrcEncoding;
-      SendMessage(hwndEdit,SCI_SETCODEPAGE,(iEncoding == CPI_DEFAULT) ? iDefaultCodePage : SC_CP_UTF8,0);
+      g_Scintilla.SetCodePage((iEncoding == CPI_DEFAULT) ? iDefaultCodePage : Scintilla::CpUtf8);
     }
   }
 
@@ -915,16 +917,16 @@ HWND InitInstance(HINSTANCE hInstance,LPSTR pszCmdLine,int nCmdShow)
 
   // Check for /c [if no file is specified] -- even if a file is specified
   /*else */if (flagNewFromClipboard) {
-    if (SendMessage(hwndEdit,SCI_CANPASTE,0,0)) {
+    if (g_Scintilla.CanPaste()) {
       BOOL bAutoIndent2 = bAutoIndent;
       bAutoIndent = 0;
       EditJumpTo(hwndEdit,-1,0);
-      SendMessage(hwndEdit,SCI_BEGINUNDOACTION,0,0);
-      if (SendMessage(hwndEdit,SCI_GETLENGTH,0,0) > 0)
-        SendMessage(hwndEdit,SCI_NEWLINE,0,0);
-      SendMessage(hwndEdit,SCI_PASTE,0,0);
-      SendMessage(hwndEdit,SCI_NEWLINE,0,0);
-      SendMessage(hwndEdit,SCI_ENDUNDOACTION,0,0);
+      g_Scintilla.BeginUndoAction();
+      if (g_Scintilla.Length() > 0)
+        g_Scintilla.NewLine();
+      g_Scintilla.Paste();
+      g_Scintilla.NewLine();
+      g_Scintilla.EndUndoAction();
       bAutoIndent = bAutoIndent2;
       if (flagJumpTo)
         EditJumpTo(hwndEdit,iInitialLine,iInitialColumn);
@@ -954,9 +956,9 @@ HWND InitInstance(HINSTANCE hInstance,LPSTR pszCmdLine,int nCmdShow)
 
   // Match Text
   if (flagMatchText && lpMatchArg) {
-    if (lstrlen(lpMatchArg) && SendMessage(hwndEdit,SCI_GETLENGTH,0,0)) {
+    if (lstrlen(lpMatchArg) && g_Scintilla.Length()) {
 
-      UINT cp = (UINT)SendMessage(hwndEdit,SCI_GETCODEPAGE,0,0);
+      UINT cp = (UINT)g_Scintilla.CodePage();
       WideCharToMultiByte(cp,0,lpMatchArg,-1,efrData.szFind,COUNTOF(efrData.szFind),NULL,NULL);
       WideCharToMultiByte(CP_UTF8,0,lpMatchArg,-1,efrData.szFindUTF8,COUNTOF(efrData.szFindUTF8),NULL,NULL);
       cpLastFind = cp;
@@ -974,7 +976,7 @@ HWND InitInstance(HINSTANCE hInstance,LPSTR pszCmdLine,int nCmdShow)
       }
       else {
         if (!flagJumpTo)
-          SendMessage(hwndEdit,SCI_DOCUMENTSTART,0,0);
+          g_Scintilla.DocumentStart();
         EditFindNext(hwndEdit,&efrData,FALSE);
         EditEnsureSelectionVisible(hwndEdit);
       }
@@ -1327,16 +1329,13 @@ LRESULT CALLBACK MainWndProc(HWND hwnd,UINT umsg,WPARAM wParam,LPARAM lParam)
       {
         case IDC_EDIT:
           {
-            int iSelStart = (int)SendMessage(hwndEdit,SCI_GETSELECTIONSTART,0,0);
-            int iSelEnd   = (int)SendMessage(hwndEdit,SCI_GETSELECTIONEND,0,0);
-
-            if (iSelStart == iSelEnd && pt.x != -1 && pt.y != -1)
+            auto SelSpan = g_Scintilla.SelectionSpan();
+            if (SelSpan.Length() == 0 && pt.x != -1 && pt.y != -1)
             {
-              int iNewPos;
               POINT ptc = { pt.x, pt.y };
               ScreenToClient(hwndEdit,&ptc);
-              iNewPos = (int)SendMessage(hwndEdit,SCI_POSITIONFROMPOINT,(WPARAM)ptc.x,(LPARAM)ptc.y);
-              SendMessage(hwndEdit,SCI_GOTOPOS,(WPARAM)iNewPos,0);
+              auto iNewPos = g_Scintilla.PositionFromPoint(pt.x, pt.y);
+              g_Scintilla.GotoPos(iNewPos);
             }
 
             if (pt.x == -1 && pt.y == -1)
@@ -1417,7 +1416,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd,UINT umsg,WPARAM wParam,LPARAM lParam)
               int iVisTopLine = (int)SendMessage(hwndEdit,SCI_GETFIRSTVISIBLELINE,0,0);
               int iDocTopLine = (int)SendMessage(hwndEdit,SCI_DOCLINEFROMVISIBLE,(WPARAM)iVisTopLine,0);
               int iXOffset    = (int)SendMessage(hwndEdit,SCI_GETXOFFSET,0,0);
-              BOOL bIsTail    = (iCurPos == iAnchorPos) && (iCurPos == SendMessage(hwndEdit,SCI_GETLENGTH,0,0));
+              BOOL bIsTail    = (iCurPos == iAnchorPos) && (iCurPos == g_Scintilla.Length());
 
               iWeakSrcEncoding = iEncoding;
               if (FileLoad(TRUE,FALSE,TRUE,FALSE,szCurFile)) {
@@ -1427,7 +1426,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd,UINT umsg,WPARAM wParam,LPARAM lParam)
                   EditEnsureSelectionVisible(hwndEdit);
                 }
 
-                else if (SendMessage(hwndEdit,SCI_GETLENGTH,0,0) >= 4) {
+                else if (g_Scintilla.Length() >= 4) {
                   char tch[5] = "";
                   SendMessage(hwndEdit,SCI_GETTEXT,5,(LPARAM)tch);
                   if (lstrcmpiA(tch,".LOG") != 0) {
@@ -1612,29 +1611,29 @@ LRESULT MsgCreate(HWND hwnd,WPARAM wParam,LPARAM lParam)
   SendMessage(hwndEdit,SCI_SETEDGECOLUMN,iLongLinesLimit,0);
 
   // Margins
-  SendMessage(hwndEdit,SCI_SETMARGINWIDTHN,2,0);
-  SendMessage(hwndEdit,SCI_SETMARGINWIDTHN,1,(bShowSelectionMargin)?16:0);
+  g_Scintilla.SetMarginWidthN(2, 0);
+  g_Scintilla.SetMarginWidthN(1, bShowSelectionMargin ? 16 : 0);
   UpdateLineNumberWidth();
   //SendMessage(hwndEdit,SCI_SETMARGINWIDTHN,0,
   //  (bShowLineNumbers)?SendMessage(hwndEdit,SCI_TEXTWIDTH,STYLE_LINENUMBER,(LPARAM)L"_999999_"):0);
 
   // Code folding
-  SciCall_SetMarginType(MARGIN_FOLD_INDEX, SC_MARGIN_SYMBOL);
-  SciCall_SetMarginMask(MARGIN_FOLD_INDEX, SC_MASK_FOLDERS);
-  SciCall_SetMarginWidth(MARGIN_FOLD_INDEX, (bShowCodeFolding) ? 11 : 0);
-  SciCall_SetMarginSensitive(MARGIN_FOLD_INDEX, TRUE);
-  SciCall_MarkerDefine(SC_MARKNUM_FOLDEROPEN, SC_MARK_BOXMINUS);
-  SciCall_MarkerDefine(SC_MARKNUM_FOLDER, SC_MARK_BOXPLUS);
-  SciCall_MarkerDefine(SC_MARKNUM_FOLDERSUB, SC_MARK_VLINE);
-  SciCall_MarkerDefine(SC_MARKNUM_FOLDERTAIL, SC_MARK_LCORNER);
-  SciCall_MarkerDefine(SC_MARKNUM_FOLDEREND, SC_MARK_BOXPLUSCONNECTED);
-  SciCall_MarkerDefine(SC_MARKNUM_FOLDEROPENMID, SC_MARK_BOXMINUSCONNECTED);
-  SciCall_MarkerDefine(SC_MARKNUM_FOLDERMIDTAIL, SC_MARK_TCORNER);
-  SciCall_SetFoldFlags(16);
+  g_Scintilla.SetMarginTypeN(MARGIN_FOLD_INDEX, Scintilla::MarginType::Symbol);
+  g_Scintilla.SetMarginMaskN(MARGIN_FOLD_INDEX, Scintilla::MaskFolders);
+  g_Scintilla.SetMarginWidthN(MARGIN_FOLD_INDEX, (bShowCodeFolding) ? 11 : 0);
+  g_Scintilla.SetMarginSensitiveN(MARGIN_FOLD_INDEX, true);
+  g_Scintilla.MarkerDefine((int)Scintilla::MarkerOutline::FolderOpen, Scintilla::MarkerSymbol::BoxMinus);
+  g_Scintilla.MarkerDefine((int)Scintilla::MarkerOutline::Folder, Scintilla::MarkerSymbol::BoxPlus);
+  g_Scintilla.MarkerDefine((int)Scintilla::MarkerOutline::FolderSub, Scintilla::MarkerSymbol::VLine);
+  g_Scintilla.MarkerDefine((int)Scintilla::MarkerOutline::FolderTail, Scintilla::MarkerSymbol::LCorner);
+  g_Scintilla.MarkerDefine((int)Scintilla::MarkerOutline::FolderEnd, Scintilla::MarkerSymbol::BoxPlusConnected);
+  g_Scintilla.MarkerDefine((int)Scintilla::MarkerOutline::FolderOpenMid, Scintilla::MarkerSymbol::BoxMinusConnected);
+  g_Scintilla.MarkerDefine((int)Scintilla::MarkerOutline::FolderMidTail, Scintilla::MarkerSymbol::TCorner);
+  g_Scintilla.SetFoldFlags(Scintilla::FoldFlag::LineAfterContracted);
 
   // Nonprinting characters
-  SendMessage(hwndEdit,SCI_SETVIEWWS,(bViewWhiteSpace)?SCWS_VISIBLEALWAYS:SCWS_INVISIBLE,0);
-  SendMessage(hwndEdit,SCI_SETVIEWEOL,bViewEOLs,0);
+  g_Scintilla.SetViewWS(bViewWhiteSpace ? Scintilla::WhiteSpace::VisibleAlways : Scintilla::WhiteSpace::Invisible);
+  g_Scintilla.SetViewEOL(bViewEOLs);
 
   hwndEditFrame = CreateWindowEx(
                     WS_EX_CLIENTEDGE,
@@ -2111,7 +2110,7 @@ void MsgInitMenu(HWND hwnd,WPARAM wParam,LPARAM lParam)
 
   EnableCmd(hmenu,IDM_EDIT_CUT,i /*&& !bReadOnly*/);
   EnableCmd(hmenu,IDM_EDIT_COPY,i /*&& !bReadOnly*/);
-  EnableCmd(hmenu,IDM_EDIT_COPYALL,SendMessage(hwndEdit,SCI_GETLENGTH,0,0) /*&& !bReadOnly*/);
+  EnableCmd(hmenu,IDM_EDIT_COPYALL,g_Scintilla.Length() /*&& !bReadOnly*/);
   EnableCmd(hmenu,IDM_EDIT_COPYADD,i /*&& !bReadOnly*/);
   EnableCmd(hmenu,IDM_EDIT_PASTE,i2 /*&& !bReadOnly*/);
   EnableCmd(hmenu,IDM_EDIT_SWAP,i || i2 /*&& !bReadOnly*/);
@@ -2189,7 +2188,7 @@ void MsgInitMenu(HWND hwnd,WPARAM wParam,LPARAM lParam)
   //EnableCmd(hmenu,IDM_EDIT_INSERT_FILENAME,!bReadOnly);
   //EnableCmd(hmenu,IDM_EDIT_INSERT_PATHNAME,!bReadOnly);
 
-  i = (int)SendMessage(hwndEdit,SCI_GETLENGTH,0,0);
+  i = (int)g_Scintilla.Length();
   EnableCmd(hmenu,IDM_EDIT_FIND,i);
   EnableCmd(hmenu,IDM_EDIT_SAVEFIND,i);
   EnableCmd(hmenu,IDM_EDIT_FINDNEXT,i);
@@ -2345,7 +2344,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
           iWeakSrcEncoding = iEncoding;
           if (FileLoad(TRUE,FALSE,TRUE,FALSE,tchCurFile2))
           {
-            if (SendMessage(hwndEdit,SCI_GETLENGTH,0,0) >= 4) {
+            if (g_Scintilla.Length() >= 4) {
               char tch[5] = "";
               SendMessage(hwndEdit,SCI_GETTEXT,5,(LPARAM)tch);
               if (lstrcmpiA(tch,".LOG") != 0) {
@@ -2752,7 +2751,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
           iEncoding,iNewEncoding,
           (flagSetEncoding),lstrlen(szCurFile) == 0)) {
 
-          if (SendMessage(hwndEdit,SCI_GETLENGTH,0,0) == 0) {
+          if (g_Scintilla.Length() == 0) {
             iEncoding = iNewEncoding;
             iOriginalEncoding = iNewEncoding;
           }
@@ -2859,7 +2858,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
     case IDM_EDIT_COPYALL:
       if (flagPasteBoard)
         bLastCopyFromMe = TRUE;
-      SendMessage(hwndEdit,SCI_COPYRANGE,0,SendMessage(hwndEdit,SCI_GETLENGTH,0,0));
+      SendMessage(hwndEdit,SCI_COPYRANGE,0,g_Scintilla.Length());
       UpdateToolbar();
       break;
 
@@ -3346,7 +3345,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
           wsprintf(tchDateTime,L"%s %s",tchTime,tchDate);
         }
 
-        uCP = (SendMessage(hwndEdit,SCI_GETCODEPAGE,0,0) == SC_CP_UTF8) ? CP_UTF8 : CP_ACP;
+        uCP = (g_Scintilla.CodePage() == Scintilla::CpUtf8) ? CP_UTF8 : CP_ACP;
         WideCharToMultiByte(uCP,0,tchDateTime,-1,mszBuf,COUNTOF(mszBuf),NULL,NULL);
         //iSelStart = SendMessage(hwndEdit,SCI_GETSELECTIONSTART,0,0);
         SendMessage(hwndEdit,SCI_REPLACESEL,0,(LPARAM)mszBuf);
@@ -3379,7 +3378,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
           pszInsert = tchUntitled;
         }
 
-        uCP = (SendMessage(hwndEdit,SCI_GETCODEPAGE,0,0) == SC_CP_UTF8) ? CP_UTF8 : CP_ACP;
+        uCP = (g_Scintilla.CodePage() == Scintilla::CpUtf8) ? CP_UTF8 : CP_ACP;
         WideCharToMultiByte(uCP,0,pszInsert,-1,mszBuf,COUNTOF(mszBuf),NULL,NULL);
         //iSelStart = SendMessage(hwndEdit,SCI_GETSELECTIONSTART,0,0);
         SendMessage(hwndEdit,SCI_REPLACESEL,0,(LPARAM)mszBuf);
@@ -3609,23 +3608,23 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
     //case IDM_EDIT_BOOKMARKNEXT:
      case BME_EDIT_BOOKMARKNEXT:
     {
-        int iPos = (int)SendMessage( hwndEdit , SCI_GETCURRENTPOS , 0 , 0);
-        int iLine = (int)SendMessage( hwndEdit , SCI_LINEFROMPOSITION , iPos , 0 );
+        auto iPos = g_Scintilla.CurrentPos();
+        auto iLine = g_Scintilla.LineFromPosition(iPos);
 
         int bitmask = 1;
-        int iNextLine = (int)SendMessage( hwndEdit , SCI_MARKERNEXT , iLine+1 , bitmask );
+        auto iNextLine = g_Scintilla.MarkerNext(iLine + 1, bitmask);
         if( iNextLine == -1 )
         {
-            iNextLine = (int)SendMessage( hwndEdit , SCI_MARKERNEXT , 0 , bitmask );
+            iNextLine = g_Scintilla.MarkerNext(0, bitmask);
         }
 
         if( iNextLine != -1 )
         {
-            SciCall_EnsureVisible(iNextLine);
-            SendMessage( hwndEdit , SCI_GOTOLINE , iNextLine , 0 );
-            SciCall_SetYCaretPolicy(CARET_SLOP|CARET_STRICT|CARET_EVEN,10);
-            SciCall_ScrollCaret();
-            SciCall_SetYCaretPolicy(CARET_EVEN,0);
+            g_Scintilla.EnsureVisible(iNextLine);
+            g_Scintilla.GotoLine(iNextLine);
+            g_Scintilla.SetYCaretPolicy(Scintilla::CaretPolicy::Slop | Scintilla::CaretPolicy::Strict | Scintilla::CaretPolicy::Even, 10);
+            g_Scintilla.ScrollCaret();
+            g_Scintilla.SetYCaretPolicy(Scintilla::CaretPolicy::Even, 0);
         }
         break;
     }
@@ -3646,11 +3645,11 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
 
         if( iNextLine != -1 )
         {
-            SciCall_EnsureVisible(iNextLine);
-            SendMessage( hwndEdit , SCI_GOTOLINE , iNextLine , 0 );
-            SciCall_SetYCaretPolicy(CARET_SLOP|CARET_STRICT|CARET_EVEN,10);
-            SciCall_ScrollCaret();
-            SciCall_SetYCaretPolicy(CARET_EVEN,0);
+            g_Scintilla.EnsureVisible(iNextLine);
+            g_Scintilla.GotoLine(iNextLine);
+            g_Scintilla.SetYCaretPolicy(Scintilla::CaretPolicy::Slop | Scintilla::CaretPolicy::Strict | Scintilla::CaretPolicy::Even, 10);
+            g_Scintilla.ScrollCaret();
+            g_Scintilla.SetYCaretPolicy(Scintilla::CaretPolicy::Even, 0);
         }
 
         break;
@@ -3705,7 +3704,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
     case IDM_EDIT_SELTONEXT:
     case IDM_EDIT_SELTOPREV:
 
-      if (SendMessage(hwndEdit,SCI_GETLENGTH,0,0) == 0)
+      if (g_Scintilla.Length() == 0)
         break;
 
       if (!lstrlenA(efrData.szFind)) {
@@ -3716,10 +3715,9 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
       }
 
       else {
-
-        UINT cp = (UINT)SendMessage(hwndEdit,SCI_GETCODEPAGE,0,0);
+        UINT cp = (UINT)g_Scintilla.CodePage();
         if (cpLastFind != cp) {
-          if (cp != SC_CP_UTF8) {
+          if (cp != Scintilla::CpUtf8) {
 
             WCHAR wch[512];
 
@@ -3987,7 +3985,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
       iMarkOccurrences = 0;
       // clear all marks
       SendMessage(hwndEdit, SCI_SETINDICATORCURRENT, 1, 0);
-      SendMessage(hwndEdit, SCI_INDICATORCLEARRANGE, 0, (int)SendMessage(hwndEdit,SCI_GETLENGTH,0,0));
+      SendMessage(hwndEdit, SCI_INDICATORCLEARRANGE, 0, (int)g_Scintilla.Length());
       break;
 
     case IDM_VIEW_MARKOCCURRENCES_RED:
@@ -4017,7 +4015,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
 
     case IDM_VIEW_FOLDING:
       bShowCodeFolding = (bShowCodeFolding) ? FALSE : TRUE;
-      SciCall_SetMarginWidth(MARGIN_FOLD_INDEX, (bShowCodeFolding) ? 11 : 0);
+      g_Scintilla.SetMarginWidthN(MARGIN_FOLD_INDEX, (bShowCodeFolding) ? 11 : 0);
       UpdateToolbar();
       if (!bShowCodeFolding)
         FoldToggleAll(EXPAND);
@@ -4566,7 +4564,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
         mktime(&sst);
         wcsftime(wchReplace,COUNTOF(wchReplace),wchTemplate,&sst);
 
-        cp = (UINT)SendMessage(hwndEdit,SCI_GETCODEPAGE,0,0);
+        cp = (UINT)g_Scintilla.CodePage();
         WideCharToMultiByte(cp,0,wchFind,-1,efrTS.szFind,COUNTOF(efrTS.szFind),NULL,NULL);
         WideCharToMultiByte(cp,0,wchReplace,-1,efrTS.szReplace,COUNTOF(efrTS.szReplace),NULL,NULL);
 
@@ -4620,7 +4618,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
             if (lstrlenA(mszSelection)) {
 
               WCHAR wszSelection[512];
-              UINT uCP = (SendMessage(hwndEdit,SCI_GETCODEPAGE,0,0) == SC_CP_UTF8) ? CP_UTF8 : CP_ACP;
+              UINT uCP = (g_Scintilla.CodePage() == Scintilla::CpUtf8) ? CP_UTF8 : CP_ACP;
               MultiByteToWideChar(uCP,0,mszSelection,-1,wszSelection,COUNTOF(wszSelection));
 
               lpszCommand = (LPWSTR)GlobalAlloc(GPTR,sizeof(WCHAR)*(512+COUNTOF(szCmdTemplate)+MAX_PATH+32));
@@ -4686,10 +4684,10 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
           lpsz = StrChrA(mszSelection,'\r');
           if (lpsz) *lpsz = '\0';
 
-          cpLastFind = (UINT)SendMessage(hwndEdit,SCI_GETCODEPAGE,0,0);
+          cpLastFind = (UINT)g_Scintilla.CodePage();
           lstrcpyA(efrData.szFind,mszSelection);
 
-          if (cpLastFind != SC_CP_UTF8)
+          if (cpLastFind != Scintilla::CpUtf8)
           {
             WCHAR wszBuf[512];
 
@@ -5129,7 +5127,7 @@ LRESULT MsgNotify(HWND hwnd,WPARAM wParam,LPARAM lParam)
               char c;
 
               int iEndStyled = (int)SendMessage(hwndEdit,SCI_GETENDSTYLED,0,0);
-              if (iEndStyled < (int)SendMessage(hwndEdit,SCI_GETLENGTH,0,0)) {
+              if (iEndStyled < (int)g_Scintilla.Length()) {
                 int iLine = (int)SendMessage(hwndEdit,SCI_LINEFROMPOSITION,iEndStyled,0);
                 int iEndStyled = (int)SendMessage(hwndEdit,SCI_POSITIONFROMLINE,iLine,0);
                 SendMessage(hwndEdit,SCI_COLOURISE,iEndStyled,-1);
@@ -5329,7 +5327,7 @@ LRESULT MsgNotify(HWND hwnd,WPARAM wParam,LPARAM lParam)
 
         case SCN_MARGINCLICK:
           if (scn->margin == MARGIN_FOLD_INDEX)
-            FoldClick(SciCall_LineFromPosition(scn->position), scn->modifiers);
+            FoldClick(g_Scintilla.LineFromPosition(scn->position), scn->modifiers);
           break;
 
         case SCN_KEY:
@@ -6615,10 +6613,10 @@ void UpdateToolbar()
 
   i = (int)SendMessage(hwndEdit,SCI_GETSELECTIONEND,0,0) - (int)SendMessage(hwndEdit,SCI_GETSELECTIONSTART,0,0);
   EnableTool(IDT_EDIT_CUT,i /*&& !bReadOnly*/);
-  EnableTool(IDT_EDIT_COPY,SendMessage(hwndEdit,SCI_GETLENGTH,0,0));
+  EnableTool(IDT_EDIT_COPY,g_Scintilla.Length());
   EnableTool(IDT_EDIT_PASTE,SendMessage(hwndEdit,SCI_CANPASTE,0,0) /*&& !bReadOnly*/);
 
-  i = (int)SendMessage(hwndEdit,SCI_GETLENGTH,0,0);
+  i = (int)g_Scintilla.Length();
   EnableTool(IDT_EDIT_FIND,i);
   //EnableTool(IDT_EDIT_FINDNEXT,i);
   //EnableTool(IDT_EDIT_FINDPREV,i && lstrlen(efrData.szFind));
@@ -6727,7 +6725,7 @@ void UpdateStatusbar()
     FormatString(tchDocPos,COUNTOF(tchDocPos),IDS_DOCPOS2,tchLn,tchLines,tchCol,tchCols,tchSel);
 #endif
 
-  iBytes = (int)SendMessage(hwndEdit,SCI_GETLENGTH,0,0);
+  iBytes = (int)g_Scintilla.Length();
   StrFormatByteSize(iBytes,tchBytes,COUNTOF(tchBytes));
 
   FormatString(tchDocSize,COUNTOF(tchDocSize),IDS_DOCSIZE,tchBytes);
@@ -6863,7 +6861,7 @@ BOOL FileLoad(BOOL bDontSave,BOOL bNew,BOOL bReload,BOOL bNoEncDetect,LPCWSTR lp
     SendMessage(hwndEdit,SCI_SETEOLMODE,iLineEndings[iDefaultEOLMode],0);
     iEncoding = iDefaultEncoding;
     iOriginalEncoding = iDefaultEncoding;
-    SendMessage(hwndEdit,SCI_SETCODEPAGE,(iDefaultEncoding == CPI_DEFAULT) ? iDefaultCodePage : SC_CP_UTF8,0);
+    SendMessage(hwndEdit,SCI_SETCODEPAGE,(iDefaultEncoding == CPI_DEFAULT) ? iDefaultCodePage : Scintilla::CpUtf8,0);
     EditSetNewText(hwndEdit,"",0);
     SetWindowTitle(hwndMain,uidsAppTitle,fIsElevated,IDS_UNTITLED,szCurFile,
       iPathNameFormat,bModified || iEncoding != iOriginalEncoding,
@@ -6929,7 +6927,7 @@ BOOL FileLoad(BOOL bDontSave,BOOL bNew,BOOL bReload,BOOL bNoEncDetect,LPCWSTR lp
           iEncoding = iDefaultEncoding;
           iOriginalEncoding = iDefaultEncoding;
         }
-        SendMessage(hwndEdit,SCI_SETCODEPAGE,(iEncoding == CPI_DEFAULT) ? iDefaultCodePage : SC_CP_UTF8,0);
+        SendMessage(hwndEdit,SCI_SETCODEPAGE,(iEncoding == CPI_DEFAULT) ? iDefaultCodePage : Scintilla::CpUtf8,0);
         bReadOnly = FALSE;
         EditSetNewText(hwndEdit,"",0);
       }
@@ -6967,7 +6965,7 @@ BOOL FileLoad(BOOL bDontSave,BOOL bNew,BOOL bReload,BOOL bNoEncDetect,LPCWSTR lp
     InstallFileWatching(szCurFile);
 
     // the .LOG feature ...
-    if (SendMessage(hwndEdit,SCI_GETLENGTH,0,0) >= 4) {
+    if (g_Scintilla.Length() >= 4) {
       char tchLog[5] = "";
       SendMessage(hwndEdit,SCI_GETTEXT,5,(LPARAM)tchLog);
       if (lstrcmpiA(tchLog,".LOG") == 0) {
@@ -7008,7 +7006,7 @@ BOOL FileSave(BOOL bSaveAlways,BOOL bAsk,BOOL bSaveAs,BOOL bSaveCopy)
 
   BOOL bIsEmptyNewFile = FALSE;
   if (lstrlen(szCurFile) == 0) {
-    int cchText = (int)SendMessage(hwndEdit,SCI_GETLENGTH,0,0);
+    int cchText = (int)g_Scintilla.Length();
     if (cchText == 0)
       bIsEmptyNewFile = TRUE;
     else if (cchText < 1023) {
@@ -7888,7 +7886,7 @@ void CALLBACK PasteBoardTimer(HWND hwnd,UINT uMsg,UINT_PTR idEvent,DWORD dwTime)
       bAutoIndent = 0;
       EditJumpTo(hwndEdit,-1,0);
       SendMessage(hwndEdit,SCI_BEGINUNDOACTION,0,0);
-      if (SendMessage(hwndEdit,SCI_GETLENGTH,0,0) > 0)
+      if (g_Scintilla.Length() > 0)
         SendMessage(hwndEdit,SCI_NEWLINE,0,0);
       SendMessage(hwndEdit,SCI_PASTE,0,0);
       SendMessage(hwndEdit,SCI_NEWLINE,0,0);

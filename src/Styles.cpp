@@ -2832,15 +2832,15 @@ void Style_SetLexer(HWND hwnd,PEDITLEXER pLexNew)
     SendMessage(hwnd,SCI_SETPROPERTY,(WPARAM)"lexer.sql.numbersign.comment",(LPARAM)"1");
   }
   else if (pLexNew->iLexer == SCLEX_NSIS)
-    SciCall_SetProperty("nsis.ignorecase", "1");
+    g_Scintilla.SetProperty("nsis.ignorecase", "1");
 
   // Code folding
-  SciCall_SetProperty("fold", "1");
-  SciCall_SetProperty("fold.compact", "0");
-  SciCall_SetProperty("fold.comment", "1");
-  SciCall_SetProperty("fold.html", "1");
-  SciCall_SetProperty("fold.preprocessor", "1");
-  SciCall_SetProperty("fold.cpp.comment.explicit", "0");
+  g_Scintilla.SetProperty("fold", "1");
+  g_Scintilla.SetProperty("fold.compact", "0");
+  g_Scintilla.SetProperty("fold.comment", "1");
+  g_Scintilla.SetProperty("fold.html", "1");
+  g_Scintilla.SetProperty("fold.preprocessor", "1");
+  g_Scintilla.SetProperty("fold.cpp.comment.explicit", "0");
 
   // Add KeyWord Lists
   for (i = 0; i < 9; i++)
@@ -3064,11 +3064,11 @@ void Style_SetLexer(HWND hwnd,PEDITLEXER pLexNew)
 
     int i;
 
-    COLORREF clrFore = SciCall_StyleGetFore(STYLE_DEFAULT);
-    COLORREF clrBack = SciCall_StyleGetBack(STYLE_DEFAULT);
+    auto clrFore = g_Scintilla.StyleGetFore(STYLE_DEFAULT);
+    auto clrBack = g_Scintilla.StyleGetBack(STYLE_DEFAULT);
 
-    SciCall_SetFoldMarginColour(TRUE, clrBack);
-    SciCall_SetFoldMarginHiColour(TRUE, clrBack);
+    g_Scintilla.SetFoldMarginColour(true, clrBack);
+    g_Scintilla.SetFoldMarginHiColour(true, clrBack);
 
     // Set marker color to the average of clrFore and clrBack
     clrFore = (((clrFore & 0xFF0000) + (clrBack & 0xFF0000)) >> 1 & 0xFF0000) |
@@ -3080,8 +3080,8 @@ void Style_SetLexer(HWND hwnd,PEDITLEXER pLexNew)
 
     for (i = 0; i < COUNTOF(iMarkerIDs); ++i)
     {
-      SciCall_MarkerSetBack(iMarkerIDs[i], clrFore);
-      SciCall_MarkerSetFore(iMarkerIDs[i], clrBack);
+      g_Scintilla.MarkerSetBack(iMarkerIDs[i], clrFore);
+      g_Scintilla.MarkerSetFore(iMarkerIDs[i], clrFore);
     }
   } // end set folding style
 
