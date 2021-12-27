@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(Notepad2-mod VERSION 5.0.0 LANGUAGES CXX)
+project(Notepad2-mod VERSION 4.2.25 LANGUAGES CXX)
 
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
     message(FATAL_ERROR "In source buils are not supported.")
