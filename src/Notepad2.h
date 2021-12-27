@@ -18,6 +18,7 @@
 *
 ******************************************************************************/
 
+#include "SciCall.h"
 
 
 //==== Main Window ============================================================
@@ -126,7 +127,7 @@ void UpdateToolbar();
 void UpdateLineNumberWidth();
 
 
-BOOL FileIO(BOOL,LPCWSTR,BOOL,int*,int*,BOOL*,BOOL*,BOOL*,BOOL);
+BOOL FileIO(BOOL,LPCWSTR,BOOL,int*,Scintilla::EndOfLine*,BOOL*,BOOL*,BOOL*,BOOL);
 BOOL FileLoad(BOOL,BOOL,BOOL,BOOL,LPCWSTR);
 BOOL FileSave(BOOL,BOOL,BOOL,BOOL);
 BOOL OpenFileDlg(HWND,LPWSTR,int,LPCWSTR);

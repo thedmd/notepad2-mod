@@ -18,9 +18,7 @@
 *
 ******************************************************************************/
 
-typedef intptr_t Position;
-typedef intptr_t Line;
-
+#include "SciCall.h"
 
 // extern "C" declarations of Scintilla functions
 BOOL Scintilla_RegisterClasses(void*);
@@ -77,8 +75,8 @@ BOOL  EditConvertText(HWND,UINT,UINT,BOOL);
 BOOL  EditSetNewEncoding(HWND,int,int,BOOL,BOOL);
 char* EditGetClipboardText(HWND);
 BOOL  EditCopyAppend(HWND);
-int   EditDetectEOLMode(HWND,char*,DWORD);
-BOOL  EditLoadFile(HWND,LPCWSTR,BOOL,int*,int*,BOOL*,BOOL*);
+auto  EditDetectEOLMode(HWND,char*,DWORD) -> Scintilla::EndOfLine;
+BOOL  EditLoadFile(HWND,LPCWSTR,BOOL,int*,Scintilla::EndOfLine*,BOOL*,BOOL*);
 BOOL  EditSaveFile(HWND,LPCWSTR,int,BOOL*,BOOL);
 
 void  EditInvertCase(HWND);
@@ -112,7 +110,7 @@ void  EditWrapToColumn(HWND,int);
 void  EditJoinLinesEx(HWND);
 void  EditSortLines(HWND,int);
 
-void  EditJumpTo(HWND,Line,int);
+void  EditJumpTo(HWND,Scintilla::Line,int);
 void  EditSelectEx(HWND,int,int);
 void  EditFixPositions(HWND);
 void  EditEnsureSelectionVisible(HWND);

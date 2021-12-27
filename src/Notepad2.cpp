@@ -219,7 +219,7 @@ BOOL      bModified;
 BOOL      bReadOnly = FALSE;
 int       iEncoding;
 int       iOriginalEncoding;
-int       iEOLMode;
+Scintilla::EndOfLine iEOLMode = Scintilla::EndOfLine::CrLf;
 
 int       iDefaultCodePage;
 int       iDefaultCharSet;
@@ -251,10 +251,10 @@ BOOL bReplaceInitialized = FALSE;
 
 extern NP2ENCODING mEncoding[];
 
-int iLineEndings[3] = {
-  SC_EOL_CRLF,
-  SC_EOL_LF,
-  SC_EOL_CR
+Scintilla::EndOfLine iLineEndings[3] = {
+  Scintilla::EndOfLine::CrLf,
+  Scintilla::EndOfLine::Lf,
+  Scintilla::EndOfLine::Cr
 };
 
 WCHAR wchPrefixSelection[256] = L"";
@@ -272,8 +272,6 @@ WCHAR     wchWndClass[16] = WC_NOTEPAD2;
 Scintilla::ScintillaCall g_Scintilla;
 
 HINSTANCE g_hInstance;
-sptr_t      g_hScintilla;
-SciFnDirect g_hScintilla_DirectFunction = NULL;
 UINT16    g_uWinVer;
 WCHAR     g_wchAppUserModelID[32] = L"";
 WCHAR     g_wchWorkingDirectory[MAX_PATH] = L"";
@@ -379,6 +377,22 @@ int flagDisplayHelp        = 0;
 
 
 
+//=============================================================================
+//
+//  g_hScintilla
+//
+//
+extern Scintilla::ScintillaCall g_Scintilla;
+
+void InitScintillaHandle(HWND hwnd)
+{
+  g_Scintilla.SetFnPtr(
+    (SciFnDirectStatus)SendMessage(hwnd, SCI_GETDIRECTSTATUSFUNCTION, 0, 0),
+    (intptr_t)SendMessage(hwnd, SCI_GETDIRECTPOINTER, 0, 0)
+  );
+}
+
+
 //==============================================================================
 //
 //  Folding Functions
@@ -393,7 +407,7 @@ typedef enum {
 #define FOLD_CHILDREN SCMOD_CTRL
 #define FOLD_SIBLINGS SCMOD_SHIFT
 
-BOOL __stdcall FoldToggleNode( Line ln, FOLD_ACTION action )
+BOOL __stdcall FoldToggleNode( Scintilla::Line ln, FOLD_ACTION action )
 {
   BOOL fExpanded = g_Scintilla.FoldExpanded(ln);
 
@@ -410,7 +424,7 @@ void __stdcall FoldToggleAll( FOLD_ACTION action )
 {
   BOOL fToggled = FALSE;
   auto lnTotal = g_Scintilla.LineCount();
-  Line ln;
+  Scintilla::Line ln;
 
   for (ln = 0; ln < lnTotal; ++ln)
   {
@@ -434,7 +448,7 @@ void __stdcall FoldToggleAll( FOLD_ACTION action )
   }
 }
 
-void __stdcall FoldPerformAction( Line ln, int mode, FOLD_ACTION action )
+void __stdcall FoldPerformAction( Scintilla::Line ln, int mode, FOLD_ACTION action )
 {
   if (action == SNIFF)
     action = g_Scintilla.FoldExpanded(ln) ? FOLD : EXPAND;
@@ -442,7 +456,7 @@ void __stdcall FoldPerformAction( Line ln, int mode, FOLD_ACTION action )
   if (mode & (FOLD_CHILDREN | FOLD_SIBLINGS))
   {
     // ln/lvNode: line and level of the source of this fold action
-    Line lnNode = ln;
+    auto lnNode = ln;
     int  lvNode = Scintilla::LevelNumber(g_Scintilla.FoldLevel(lnNode));
     auto lnTotal = g_Scintilla.LineCount();
 
@@ -522,7 +536,7 @@ void __stdcall FoldAltArrow( int key, int mode )
 
   if (bShowCodeFolding && (mode & (SCMOD_ALT | SCMOD_SHIFT)) == SCMOD_ALT)
   {
-    Line ln = g_Scintilla.LineFromPosition(g_Scintilla.CurrentPos());
+    auto ln = g_Scintilla.LineFromPosition(g_Scintilla.CurrentPos());
 
     // Jump to the next visible fold point
     if (key == SCK_DOWN && !(mode & SCMOD_CTRL))
@@ -2092,9 +2106,9 @@ void MsgInitMenu(HWND hwnd,WPARAM wParam,LPARAM lParam)
     i = -1;
   CheckMenuRadioItem(hmenu,IDM_ENCODING_ANSI,IDM_ENCODING_UTF8SIGN,i,MF_BYCOMMAND);
 
-  if (iEOLMode == SC_EOL_CRLF)
+  if (iEOLMode == Scintilla::EndOfLine::CrLf)
     i = IDM_LINEENDINGS_CRLF;
-  else if (iEOLMode == SC_EOL_LF)
+  else if (iEOLMode == Scintilla::EndOfLine::Lf)
     i = IDM_LINEENDINGS_LF;
   else
     i = IDM_LINEENDINGS_CR;
@@ -2811,10 +2825,10 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
     case IDM_LINEENDINGS_LF:
     case IDM_LINEENDINGS_CR:
       {
-        int iNewEOLMode = iLineEndings[LOWORD(wParam)-IDM_LINEENDINGS_CRLF];
+        auto iNewEOLMode = iLineEndings[LOWORD(wParam)-IDM_LINEENDINGS_CRLF];
         iEOLMode = iNewEOLMode;
-        SendMessage(hwndEdit,SCI_SETEOLMODE,iEOLMode,0);
-        SendMessage(hwndEdit,SCI_CONVERTEOLS,iEOLMode,0);
+        g_Scintilla.SetEOLMode(iEOLMode);
+        g_Scintilla.ConvertEOLs(iEOLMode);
         EditFixPositions(hwndEdit);
         UpdateToolbar();
         UpdateStatusbar();
@@ -5180,7 +5194,7 @@ LRESULT MsgNotify(HWND hwnd,WPARAM wParam,LPARAM lParam)
           if (bAutoIndent && (scn->ch == '\x0D' || scn->ch == '\x0A'))
           {
             // in CRLF mode handle LF only...
-            if ((SC_EOL_CRLF == iEOLMode && scn->ch != '\x0A') || SC_EOL_CRLF != iEOLMode)
+            if ((Scintilla::EndOfLine::CrLf == iEOLMode && scn->ch != '\x0A') || Scintilla::EndOfLine::CrLf != iEOLMode)
             {
               char *pLineBuf;
               char *pPos;
@@ -5417,9 +5431,9 @@ LRESULT MsgNotify(HWND hwnd,WPARAM wParam,LPARAM lParam)
                 return TRUE;
 
               case STATUS_EOLMODE:
-                if (iEOLMode == SC_EOL_CRLF)
+                if (iEOLMode == Scintilla::EndOfLine::CrLf)
                   i = IDM_LINEENDINGS_CRLF;
-                else if (iEOLMode == SC_EOL_LF)
+                else if (iEOLMode == Scintilla::EndOfLine::Lf)
                   i = IDM_LINEENDINGS_LF;
                 else
                   i = IDM_LINEENDINGS_CR;
@@ -6732,9 +6746,9 @@ void UpdateStatusbar()
 
   Encoding_GetLabel(iEncoding);
 
-  if (iEOLMode == SC_EOL_CR)
+  if (iEOLMode == Scintilla::EndOfLine::Cr)
     lstrcpy(tchEOLMode,L"CR");
-  else if (iEOLMode == SC_EOL_LF)
+  else if (iEOLMode == Scintilla::EndOfLine::Lf)
     lstrcpy(tchEOLMode,L"LF");
   else
     lstrcpy(tchEOLMode,L"CR+LF");
@@ -6792,7 +6806,7 @@ void UpdateLineNumberWidth()
 //  FileIO()
 //
 //
-BOOL FileIO(BOOL fLoad,LPCWSTR psz,BOOL bNoEncDetect,int *ienc,int *ieol,
+BOOL FileIO(BOOL fLoad,LPCWSTR psz,BOOL bNoEncDetect,int *ienc,Scintilla::EndOfLine *ieol,
             BOOL *pbUnicodeErr,BOOL *pbFileTooBig,
             BOOL *pbCancelDataLoss,BOOL bSaveCopy)
 {
@@ -6858,7 +6872,7 @@ BOOL FileLoad(BOOL bDontSave,BOOL bNew,BOOL bReload,BOOL bNoEncDetect,LPCWSTR lp
     bModified = FALSE;
     bReadOnly = FALSE;
     iEOLMode = iLineEndings[iDefaultEOLMode];
-    SendMessage(hwndEdit,SCI_SETEOLMODE,iLineEndings[iDefaultEOLMode],0);
+    g_Scintilla.SetEOLMode(iLineEndings[iDefaultEOLMode]);
     iEncoding = iDefaultEncoding;
     iOriginalEncoding = iDefaultEncoding;
     SendMessage(hwndEdit,SCI_SETCODEPAGE,(iDefaultEncoding == CPI_DEFAULT) ? iDefaultCodePage : Scintilla::CpUtf8,0);
@@ -6918,7 +6932,7 @@ BOOL FileLoad(BOOL bDontSave,BOOL bNew,BOOL bReload,BOOL bNoEncDetect,LPCWSTR lp
         EditSetNewText(hwndEdit,"",0);
         Style_SetLexer(hwndEdit,NULL);
         iEOLMode = iLineEndings[iDefaultEOLMode];
-        SendMessage(hwndEdit,SCI_SETEOLMODE,iLineEndings[iDefaultEOLMode],0);
+        g_Scintilla.SetEOLMode(iLineEndings[iDefaultEOLMode]);
         if (iSrcEncoding != -1) {
           iEncoding = iSrcEncoding;
           iOriginalEncoding = iSrcEncoding;
@@ -6951,7 +6965,7 @@ BOOL FileLoad(BOOL bDontSave,BOOL bNew,BOOL bReload,BOOL bNoEncDetect,LPCWSTR lp
     iOriginalEncoding = iEncoding;
     bModified = FALSE;
     //bReadOnly = FALSE;
-    SendMessage(hwndEdit,SCI_SETEOLMODE,iEOLMode,0);
+    g_Scintilla.SetEOLMode(iEOLMode);
     MRU_AddFile(pFileMRU,szFileName,flagRelativeFileMRU,flagPortableMyDocs);
     if (flagUseSystemMRU == 2)
       SHAddToRecentDocs(SHARD_PATHW,szFileName);

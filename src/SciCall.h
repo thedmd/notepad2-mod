@@ -20,8 +20,6 @@
 #include <ScintillaMessages.h>
 #include <ScintillaCall.h>
 
-//typedef intptr_t Position;
-//typedef intptr_t Line;
 
 
 //=============================================================================
@@ -30,17 +28,3 @@
 //
 //
 extern Scintilla::ScintillaCall g_Scintilla;
-
-extern sptr_t       g_hScintilla;
-extern SciFnDirect  g_hScintilla_DirectFunction;
-
-__forceinline void InitScintillaHandle(HWND hwnd)
-{
-  g_Scintilla.SetFnPtr(
-    (SciFnDirectStatus)SendMessage(hwnd, SCI_GETDIRECTSTATUSFUNCTION, 0, 0),
-    (intptr_t)SendMessage(hwnd, SCI_GETDIRECTPOINTER, 0, 0)
-  );
-
-  g_hScintilla = (sptr_t)SendMessage(hwnd, SCI_GETDIRECTPOINTER, 0, 0);
-  g_hScintilla_DirectFunction = (SciFnDirect)SendMessage(hwnd, SCI_GETDIRECTFUNCTION, 0, 0);
-}

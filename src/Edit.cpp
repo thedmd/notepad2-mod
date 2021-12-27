@@ -56,7 +56,7 @@ extern int yFindReplaceDlg;
 
 extern int iDefaultEncoding;
 extern int iDefaultEOLMode;
-extern int iLineEndings[3];
+extern Scintilla::EndOfLine iLineEndings[3];
 extern BOOL bFixLineEndings;
 extern BOOL bAutoStripBlanks;
 
@@ -601,9 +601,9 @@ BOOL EditCopyAppend(HWND hwnd)
 //
 //  EditDetectEOLMode() - moved here to handle Unicode files correctly
 //
-int EditDetectEOLMode(HWND hwnd,char* lpData,DWORD cbData)
+auto EditDetectEOLMode(HWND hwnd,char* lpData,DWORD cbData) -> Scintilla::EndOfLine
 {
-  int iEOLMode = iLineEndings[iDefaultEOLMode];
+  auto iEOLMode = iLineEndings[iDefaultEOLMode];
   char *cp = (char*)lpData;
 
   if (!cp)
@@ -612,11 +612,11 @@ int EditDetectEOLMode(HWND hwnd,char* lpData,DWORD cbData)
   while (*cp && (*cp != '\x0D' && *cp != '\x0A')) cp++;
 
   if (*cp == '\x0D' && *(cp+1) == '\x0A')
-    iEOLMode = SC_EOL_CRLF;
+    iEOLMode = Scintilla::EndOfLine::CrLf;
   else if (*cp == '\x0D' && *(cp+1) != '\x0A')
-    iEOLMode = SC_EOL_CR;
+    iEOLMode = Scintilla::EndOfLine::Cr;
   else if (*cp == '\x0A')
-    iEOLMode = SC_EOL_LF;
+    iEOLMode = Scintilla::EndOfLine::Lf;
 
   return (iEOLMode);
 }
@@ -1185,7 +1185,7 @@ BOOL EditLoadFile(
        LPCWSTR pszFile,
        BOOL bSkipEncodingDetection,
        int* iEncoding,
-       int* iEOLMode,
+       Scintilla::EndOfLine* iEOLMode,
        BOOL *pbUnicodeErr,
        BOOL *pbFileTooBig)
 {
@@ -1282,7 +1282,7 @@ BOOL EditLoadFile(
       *iEncoding = iSrcEncoding;
     SendMessage(hwnd,SCI_SETCODEPAGE,(mEncoding[*iEncoding].uFlags & NCP_DEFAULT) ? iDefaultCodePage : SC_CP_UTF8,0);
     EditSetNewText(hwnd,"",0);
-    SendMessage(hwnd,SCI_SETEOLMODE,iLineEndings[iDefaultEOLMode],0);
+    g_Scintilla.SetEOLMode(iLineEndings[iDefaultEOLMode]);
     GlobalFree(lpData);
   }
 
@@ -4675,7 +4675,7 @@ void EditSortLines(HWND hwnd,int iSortFlags)
 //
 //  EditJumpTo()
 //
-void EditJumpTo(HWND hwnd,Line iNewLine,int iNewCol)
+void EditJumpTo(HWND hwnd,Scintilla::Line iNewLine,int iNewCol)
 {
   int iMaxLine = (int)SendMessage(hwnd,SCI_GETLINECOUNT,0,0);
 
