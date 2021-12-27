@@ -1667,7 +1667,7 @@ BOOL MRU_AddFile(LPMRULIST pmru,LPCWSTR pszFile,BOOL bRelativePath,BOOL bUnexpan
       LocalFree(pmru->pszItems[i]);
       break;
     }
-    else {
+    else if (pmru->pszItems[i]) {
       WCHAR wchItem[MAX_PATH];
       PathAbsoluteFromApp(pmru->pszItems[i],wchItem,COUNTOF(wchItem),TRUE);
       if (lstrcmpi(wchItem,pszFile) == 0) {
