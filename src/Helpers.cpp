@@ -32,6 +32,7 @@
 #include "scintilla.h"
 #include "helpers.h"
 #include "resource.h"
+#include <cstdarg>
 
 
 //=============================================================================
@@ -927,8 +928,12 @@ int FormatString(LPWSTR lpOutput,int nOutput,UINT uIdFormat,...)
 
   WCHAR *p = (WCHAR *)LocalAlloc(LPTR,sizeof(WCHAR)*nOutput);
 
-  if (GetString(uIdFormat,p,nOutput))
-    wvsprintf(lpOutput,p,(va_list)((PUINT_PTR)&uIdFormat+1));
+  if (GetString(uIdFormat,p,nOutput)) {
+    va_list list;
+    va_start(list, uIdFormat);
+    wvsprintf(lpOutput,p,list);
+    va_end(list);
+  }
 
   LocalFree(p);
 

@@ -35,6 +35,7 @@
 #include "helpers.h"
 #include "resource.h"
 #include "version.h"
+#include <cstdarg>
 
 
 extern HWND  hwndMain;
@@ -67,7 +68,10 @@ int MsgBox(int iType,UINT uIdMsg,...)
   if (!GetString(uIdMsg,szBuf,COUNTOF(szBuf)))
     return(0);
 
-  wvsprintf(szText,szBuf,(va_list)((PUINT_PTR)&uIdMsg + 1));
+  va_list list;
+  va_start(list, uIdMsg);
+  wvsprintf(szText,szBuf,list);
+  va_end(list);
 
   if (uIdMsg == IDS_ERR_LOADFILE || uIdMsg == IDS_ERR_SAVEFILE ||
       uIdMsg == IDS_CREATEINI_FAIL || uIdMsg == IDS_WRITEINI_FAIL ||
@@ -2320,7 +2324,10 @@ INT_PTR InfoBox(int iType,LPCWSTR lpstrSetting,int uidMessage,...)
     return(-1);
 
   ib.lpstrMessage = (LPWSTR)LocalAlloc(LPTR,1024 * sizeof(WCHAR));
-  wvsprintf(ib.lpstrMessage,wchFormat,(va_list)((PUINT_PTR)&uidMessage + 1));
+  va_list list;
+  va_start(list, wchFormat);
+  wvsprintf(ib.lpstrMessage,wchFormat,list);
+  va_end(list);
   ib.lpstrSetting = (LPWSTR)lpstrSetting;
   ib.bDisableCheckBox = (lstrlen(szIniFile) == 0 || lstrlen(lpstrSetting) == 0 || iMode == 2) ? TRUE : FALSE;
 
