@@ -1441,7 +1441,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd,UINT umsg,WPARAM wParam,LPARAM lParam)
                 }
 
                 else if (g_Scintilla.Length() >= 4) {
-                  char tch[5] = "";
+                  char tch[6] = "";
                   SendMessage(hwndEdit,SCI_GETTEXT,5,(LPARAM)tch);
                   if (lstrcmpiA(tch,".LOG") != 0) {
                     int iNewTopLine;
@@ -2359,7 +2359,7 @@ LRESULT MsgCommand(HWND hwnd,WPARAM wParam,LPARAM lParam)
           if (FileLoad(TRUE,FALSE,TRUE,FALSE,tchCurFile2))
           {
             if (g_Scintilla.Length() >= 4) {
-              char tch[5] = "";
+              char tch[6] = "";
               SendMessage(hwndEdit,SCI_GETTEXT,5,(LPARAM)tch);
               if (lstrcmpiA(tch,".LOG") != 0) {
                 int iNewTopLine;
@@ -6980,7 +6980,7 @@ BOOL FileLoad(BOOL bDontSave,BOOL bNew,BOOL bReload,BOOL bNoEncDetect,LPCWSTR lp
 
     // the .LOG feature ...
     if (g_Scintilla.Length() >= 4) {
-      char tchLog[5] = "";
+      char tchLog[6] = "";
       SendMessage(hwndEdit,SCI_GETTEXT,5,(LPARAM)tchLog);
       if (lstrcmpiA(tchLog,".LOG") == 0) {
         EditJumpTo(hwndEdit,-1,0);
